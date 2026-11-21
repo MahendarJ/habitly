@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="description" content="Build habits, track streaks. Works offline.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Habitly">
+<title>Habitly</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div>
+      <p class="eyebrow" id="today-label"></p>
+      <h1>Habitly</h1>
+    </div>
+    <div class="top-actions">
+      <button class="pill hidden" id="install-btn" type="button">Install</button>
+      <button class="icon-btn" id="settings-btn" type="button" aria-label="Settings">⚙︎</button>
+    </div>
+  </header>
+
+  <section class="summary" id="summary" aria-live="polite"></section>
+
+  <nav class="tabs" id="tabs" aria-label="Time of day"></nav>
+
+  <div class="week-nav" id="week-nav">
+    <button type="button" class="icon-btn sm" id="week-prev" aria-label="Previous week">‹</button>
+    <button type="button" class="week-label" id="week-label"></button>
+    <button type="button" class="icon-btn sm" id="week-next" aria-label="Next week">›</button>
+  </div>
+  <div class="day-head" id="day-head" aria-hidden="true"></div>
+
+  <div id="habit-groups"></div>
+
+  <div class="empty hidden" id="empty">
+    <div class="empty-emoji">🌱</div>
+    <h2 id="empty-title">Start your first habit</h2>
+    <p id="empty-body">Small daily wins add up. Tap + to add one.</p>
+  </div>
+
+  <button class="fab" id="add-btn" type="button" aria-label="Add habit">+</button>
+</div>
+
+<!-- Add / edit sheet -->
+<div class="sheet-backdrop hidden" id="edit-sheet">
+  <form class="sheet" id="edit-form" autocomplete="off">
+    <div class="grabber"></div>
+    <h2 id="edit-title">New habit</h2>
+    <label class="field">
+      <span>Name</span>
+      <input id="f-name" maxlength="40" placeholder="e.g. Morning run" required>
+    </label>
+    <div class="field">
+      <span>Icon</span>
+      <div class="chips" id="f-emoji"></div>
+    </div>
+    <div class="field">
+      <span>Colour</span>
+      <div class="chips" id="f-color"></div>
+    </div>
+    <div class="field">
+      <span>Repeat on</span>
+      <div class="days" id="f-days"></div>
+      <div class="quick">
+        <button type="button" class="link" data-days="0,1,2,3,4,5,6">Every day</button>
+        <button type="button" class="link" data-days="1,2,3,4,5">Weekdays</button>
+        <button type="button" class="link" data-days="0,6">Weekends</button>
+      </div>
+    </div>
+    <div class="field">
+      <span>Time of day</span>
+      <div class="segment" id="f-tod"></div>
+    </div>
+    <div class="field">
+      <span>Duration (for the timer)</span>
+      <div class="segment wrap" id="f-dur"></div>
+      <label class="inline">
+        <span>Custom</span>
+        <input id="f-dur-custom" type="number" min="0" max="600" inputmode="numeric" placeholder="0">
+        <span>min</span>
+      </label>
+    </div>
+    <div class="field">
+      <span>Reminder</span>
+      <label class="switch-row">
+        <input type="checkbox" id="f-rem-on">
+        <span>Remind me at</span>
+        <input type="time" id="f-rem-time" value="07:00">
+      </label>
+      <button type="button" class="link" id="f-ics">📅 Also add to my phone calendar (most reliable)</button>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="ghost" data-close>Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</div>
+
+<!-- Detail sheet -->
+<div class="sheet-backdrop hidden" id="detail-sheet">
+  <div class="sheet">
+    <div class="grabber"></div>
+    <div class="detail-head">
+      <span class="detail-emoji" id="d-emoji"></span>
+      <div>
+        <h2 id="d-name"></h2>
+        <p class="hint tight" id="d-sub"></p>
+      </div>
+    </div>
+    <button type="button" class="primary wide hidden" id="d-timer">▶ Start timer</button>
+    <div class="stats" id="d-stats"></div>
+    <div class="month-nav">
+      <button type="button" class="icon-btn sm" id="m-prev" aria-label="Previous month">‹</button>
+      <div class="month-title" id="m-title"></div>
+      <button type="button" class="icon-btn sm" id="m-next" aria-label="Next month">›</button>
+    </div>
+    <div class="cal-head" id="cal-head"></div>
+    <div class="calendar" id="d-cal"></div>
+    <p class="hint">Tap any date to mark or unmark it. Go back as far as you like.</p>
+    <h3 class="section-label">Every month</h3>
+    <div class="year-bars" id="d-years"></div>
+    <div class="sheet-actions">
+      <button type="button" class="danger" id="d-delete">Delete</button>
+      <button type="button" class="ghost" id="d-edit">Edit</button>
+      <button type="button" class="primary" data-close>Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Timer sheet -->
+<div class="sheet-backdrop hidden" id="timer-sheet">
+  <div class="sheet timer">
+    <div class="grabber"></div>
+    <h2 id="t-name"></h2>
+    <div class="ring-wrap">
+      <svg viewBox="0 0 220 220" class="ring" aria-hidden="true">
+        <circle cx="110" cy="110" r="96" class="ring-bg"/>
+        <circle cx="110" cy="110" r="96" class="ring-fg" id="t-ring"/>
+      </svg>
+      <div class="ring-text">
+        <div class="t-time" id="t-time">00:00</div>
+        <div class="hint tight" id="t-of"></div>
+      </div>
+    </div>
+    <div class="timer-actions">
+      <button type="button" class="ghost" id="t-reset">Reset</button>
+      <button type="button" class="primary big" id="t-toggle">Start</button>
+      <button type="button" class="ghost" id="t-plus">+1 min</button>
+    </div>
+    <p class="hint center">The timer keeps counting if you switch apps. When it ends, the habit is ticked off for today.</p>
+    <div class="sheet-actions">
+      <button type="button" class="ghost" id="t-done-now">Mark done now</button>
+      <button type="button" class="primary" data-close>Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings sheet -->
+<div class="sheet-backdrop hidden" id="settings-sheet">
+  <div class="sheet">
+    <div class="grabber"></div>
+    <h2>Settings</h2>
+    <h3 class="section-label">Reminders</h3>
+    <p class="hint" id="s-notif-status"></p>
+    <div class="sheet-actions left">
+      <button type="button" class="ghost" id="s-notif">Allow notifications</button>
+      <button type="button" class="ghost" id="s-test">Send test</button>
+      <button type="button" class="ghost" id="s-ics-all">📅 Add all to calendar</button>
+    </div>
+    <h3 class="section-label">Backup</h3>
+    <p class="hint">Your data lives only on this phone. Copy a backup now and then.</p>
+    <div class="sheet-actions left">
+      <button type="button" class="ghost" id="s-export">Copy backup</button>
+      <button type="button" class="ghost" id="s-import">Restore backup</button>
+    </div>
+    <textarea id="s-text" class="hidden" rows="5" placeholder="Paste your backup here"></textarea>
+    <button type="button" class="primary hidden" id="s-import-go">Restore</button>
+    <h3 class="section-label">Install on your phone</h3>
+    <p class="hint"><b>Android (Chrome):</b> menu ⋮ → <i>Install app</i>.<br>
+      <b>iPhone (Safari):</b> Share → <i>Add to Home Screen</i>.</p>
+    <div class="sheet-actions">
+      <button type="button" class="primary" data-close>Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm dialog -->
+<div class="sheet-backdrop hidden" id="confirm-sheet">
+  <div class="sheet small">
+    <h2 id="c-title">Are you sure?</h2>
+    <p class="hint" id="c-body"></p>
+    <div class="sheet-actions">
+      <button type="button" class="ghost" data-close>Cancel</button>
+      <button type="button" class="danger" id="c-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast" role="status"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
